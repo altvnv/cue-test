@@ -59,9 +59,6 @@ import (
 
 	// Sources is a reference to the location of the application's manifests or chart
 	sources?: #ApplicationSources @go(Sources) @protobuf(8,bytes,opt)
-
-	// SourceHydrator provides a way to push hydrated manifests back to git before syncing them to the cluster.
-	sourceHydrator?: null | #SourceHydrator @go(SourceHydrator,*SourceHydrator) @protobuf(9,bytes,opt)
 }
 
 #IgnoreDifferences: [...#ResourceIgnoreDifferences]
@@ -124,9 +121,6 @@ import (
 
 	// Ref is reference to another source within sources field. This field will not be used if used with a `source` tag.
 	ref?: string @go(Ref) @protobuf(13,bytes,opt)
-
-	// Name is used to refer to a source and is displayed in the UI. It is used in multi-source Applications.
-	name?: string @go(Name) @protobuf(14,bytes,opt)
 }
 
 // ApplicationSources contains list of required information about the sources of an application
@@ -145,50 +139,6 @@ import (
 #ApplicationSourceTypeKustomize: #ApplicationSourceType & "Kustomize"
 #ApplicationSourceTypeDirectory: #ApplicationSourceType & "Directory"
 #ApplicationSourceTypePlugin:    #ApplicationSourceType & "Plugin"
-
-// SourceHydrator specifies a dry "don't repeat yourself" source for manifests, a sync source from which to sync
-// hydrated manifests, and an optional hydrateTo location to act as a "staging" aread for hydrated manifests.
-#SourceHydrator: {
-	// DrySource specifies where the dry "don't repeat yourself" manifest source lives.
-	drySource: #DrySource @go(DrySource) @protobuf(1,bytes)
-
-	// SyncSource specifies where to sync hydrated manifests from.
-	syncSource: #SyncSource @go(SyncSource) @protobuf(2,bytes)
-
-	// HydrateTo specifies an optional "staging" location to push hydrated manifests to. An external system would then
-	// have to move manifests to the SyncSource, e.g. by pull request.
-	hydrateTo?: null | #HydrateTo @go(HydrateTo,*HydrateTo) @protobuf(3,bytes,opt)
-}
-
-// DrySource specifies a location for dry "don't repeat yourself" manifest source information.
-#DrySource: {
-	// RepoURL is the URL to the git repository that contains the application manifests
-	repoURL: string @go(RepoURL) @protobuf(1,bytes)
-
-	// TargetRevision defines the revision of the source to hydrate
-	targetRevision: string @go(TargetRevision) @protobuf(2,bytes)
-
-	// Path is a directory path within the Git repository where the manifests are located
-	path: string @go(Path) @protobuf(3,bytes)
-}
-
-// SyncSource specifies a location from which hydrated manifests may be synced. RepoURL is assumed based on the
-// associated DrySource config in the SourceHydrator.
-#SyncSource: {
-	// TargetBranch is the branch to which hydrated manifests should be committed
-	targetBranch: string @go(TargetBranch) @protobuf(1,bytes)
-
-	// Path is a directory path within the git repository where hydrated manifests should be committed to and synced
-	// from. If hydrateTo is set, this is just the path from which hydrated manifests will be synced.
-	path: string @go(Path) @protobuf(2,bytes)
-}
-
-// HydrateTo specifies a location to which hydrated manifests should be pushed as a "staging area" before being moved to
-// the SyncSource. The RepoURL and Path are assumed based on the associated SyncSource config in the SourceHydrator.
-#HydrateTo: {
-	// TargetBranch is the branch to which hydrated manifests should be committed
-	targetBranch: string @go(TargetBranch) @protobuf(1,bytes)
-}
 
 // RefreshType specifies how to refresh the sources of a given application
 #RefreshType: string // #enumRefreshType
@@ -252,12 +202,6 @@ import (
 	// APIVersions specifies the Kubernetes resource API versions to pass to Helm when templating manifests. By default,
 	// Argo CD uses the API versions of the target cluster. The format is [group/]version/kind.
 	apiVersions?: [...string] @go(APIVersions,[]string) @protobuf(13,bytes,opt)
-
-	// SkipTests skips test manifest installation step (Helm's --skip-tests).
-	skipTests?: bool @go(SkipTests) @protobuf(14,bytes,opt)
-
-	// SkipSchemaValidation skips JSON schema validation (Helm's --skip-schema-validation)
-	skipSchemaValidation?: bool @go(SkipSchemaValidation) @protobuf(15,bytes,opt)
 }
 
 // HelmParameter is a parameter that's passed to helm template during manifest generation
@@ -480,68 +424,7 @@ import (
 
 	// ControllerNamespace indicates the namespace in which the application controller is located
 	controllerNamespace?: string @go(ControllerNamespace) @protobuf(13,bytes,opt)
-
-	// SourceHydrator stores information about the current state of source hydration
-	sourceHydrator?: #SourceHydratorStatus @go(SourceHydrator) @protobuf(14,bytes,opt)
 }
-
-// SourceHydratorStatus contains information about the current state of source hydration
-#SourceHydratorStatus: {
-	// LastSuccessfulOperation holds info about the most recent successful hydration
-	lastSuccessfulOperation?: null | #SuccessfulHydrateOperation @go(LastSuccessfulOperation,*SuccessfulHydrateOperation) @protobuf(1,bytes,opt)
-
-	// CurrentOperation holds the status of the hydrate operation
-	currentOperation?: null | #HydrateOperation @go(CurrentOperation,*HydrateOperation) @protobuf(2,bytes,opt)
-}
-
-// HydrateOperation contains information about the most recent hydrate operation
-#HydrateOperation: {
-	// StartedAt indicates when the hydrate operation started
-	startedAt?: metav1.#Time @go(StartedAt) @protobuf(1,bytes,opt)
-
-	// FinishedAt indicates when the hydrate operation finished
-	finishedAt?: null | metav1.#Time @go(FinishedAt,*metav1.Time) @protobuf(2,bytes,opt)
-
-	// Phase indicates the status of the hydrate operation
-	phase: #HydrateOperationPhase @go(Phase) @protobuf(3,bytes,opt)
-
-	// Message contains a message describing the current status of the hydrate operation
-	message: string @go(Message) @protobuf(4,bytes,opt)
-
-	// DrySHA holds the resolved revision (sha) of the dry source as of the most recent reconciliation
-	drySHA?: string @go(DrySHA) @protobuf(5,bytes,opt)
-
-	// HydratedSHA holds the resolved revision (sha) of the hydrated source as of the most recent reconciliation
-	hydratedSHA?: string @go(HydratedSHA) @protobuf(6,bytes,opt)
-
-	// SourceHydrator holds the hydrator config used for the hydrate operation
-	sourceHydrator?: #SourceHydrator @go(SourceHydrator) @protobuf(7,bytes,opt)
-}
-
-// SuccessfulHydrateOperation contains information about the most recent successful hydrate operation
-#SuccessfulHydrateOperation: {
-	// DrySHA holds the resolved revision (sha) of the dry source as of the most recent reconciliation
-	drySHA?: string @go(DrySHA) @protobuf(5,bytes,opt)
-
-	// HydratedSHA holds the resolved revision (sha) of the hydrated source as of the most recent reconciliation
-	hydratedSHA?: string @go(HydratedSHA) @protobuf(6,bytes,opt)
-
-	// SourceHydrator holds the hydrator config used for the hydrate operation
-	sourceHydrator?: #SourceHydrator @go(SourceHydrator) @protobuf(7,bytes,opt)
-}
-
-// HydrateOperationPhase indicates the status of a hydrate operation
-// +kubebuilder:validation:Enum=Hydrating;Failed;Hydrated
-#HydrateOperationPhase: string // #enumHydrateOperationPhase
-
-#enumHydrateOperationPhase:
-	#HydrateOperationPhaseHydrating |
-	#HydrateOperationPhaseFailed |
-	#HydrateOperationPhaseHydrated
-
-#HydrateOperationPhaseHydrating: #HydrateOperationPhase & "Hydrating"
-#HydrateOperationPhaseFailed:    #HydrateOperationPhase & "Failed"
-#HydrateOperationPhaseHydrated:  #HydrateOperationPhase & "Hydrated"
 
 // JWTTokens represents a list of JWT tokens
 #JWTTokens: {
@@ -883,7 +766,6 @@ import (
 
 #enumApplicationConditionType:
 	#AnnotationKeyRefresh |
-	#AnnotationKeyHydrate |
 	#ResourcesFinalizerName |
 	#PostDeleteFinalizerName |
 	#ForegroundPropagationPolicyFinalizer
@@ -961,9 +843,6 @@ import (
 #HealthStatus: {
 	// Message is a human-readable informational message describing the health status
 	message?: string @go(Message) @protobuf(2,bytes,opt)
-
-	// LastTransitionTime is the time the HealthStatus was set or updated
-	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // InfoItem contains arbitrary, human readable information about an application
@@ -1055,17 +934,16 @@ import (
 // ResourceStatus holds the current sync and health status of a resource
 // TODO: describe members of this type
 #ResourceStatus: {
-	group?:                        string               @go(Group) @protobuf(1,bytes,opt)
-	version?:                      string               @go(Version) @protobuf(2,bytes,opt)
-	kind?:                         string               @go(Kind) @protobuf(3,bytes,opt)
-	namespace?:                    string               @go(Namespace) @protobuf(4,bytes,opt)
-	name?:                         string               @go(Name) @protobuf(5,bytes,opt)
-	status?:                       #SyncStatusCode      @go(Status) @protobuf(6,bytes,opt)
-	health?:                       null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
-	hook?:                         bool                 @go(Hook) @protobuf(8,bytes,opt)
-	requiresPruning?:              bool                 @go(RequiresPruning) @protobuf(9,bytes,opt)
-	syncWave?:                     int64                @go(SyncWave) @protobuf(10,bytes,opt)
-	requiresDeletionConfirmation?: bool                 @go(RequiresDeletionConfirmation) @protobuf(11,bytes,opt)
+	group?:           string               @go(Group) @protobuf(1,bytes,opt)
+	version?:         string               @go(Version) @protobuf(2,bytes,opt)
+	kind?:            string               @go(Kind) @protobuf(3,bytes,opt)
+	namespace?:       string               @go(Namespace) @protobuf(4,bytes,opt)
+	name?:            string               @go(Name) @protobuf(5,bytes,opt)
+	status?:          #SyncStatusCode      @go(Status) @protobuf(6,bytes,opt)
+	health?:          null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
+	hook?:            bool                 @go(Hook) @protobuf(8,bytes,opt)
+	requiresPruning?: bool                 @go(RequiresPruning) @protobuf(9,bytes,opt)
+	syncWave?:        int64                @go(SyncWave) @protobuf(10,bytes,opt)
 }
 
 // ResourceDiff holds the diff of a live and target resource object
@@ -1101,7 +979,6 @@ import (
 
 #enumConnectionStatus:
 	#AnnotationKeyRefresh |
-	#AnnotationKeyHydrate |
 	#ResourcesFinalizerName |
 	#PostDeleteFinalizerName |
 	#ForegroundPropagationPolicyFinalizer
@@ -1258,12 +1135,6 @@ import (
 
 	// ExecProviderConfig contains configuration for an exec provider
 	execProviderConfig?: null | #ExecProviderConfig @go(ExecProviderConfig,*ExecProviderConfig) @protobuf(6,bytes,opt)
-
-	// DisableCompression bypasses automatic GZip compression requests to the server.
-	disableCompression?: bool @go(DisableCompression) @protobuf(7,bytes,opt)
-
-	// ProxyURL is the URL to the proxy to be used for all requests send to the server
-	proxyUrl?: string @go(ProxyUrl) @protobuf(8,bytes,opt)
 }
 
 // TLSClientConfig contains settings to enable transport layer security

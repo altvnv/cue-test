@@ -16,6 +16,7 @@ import (
 #DeprecatedRollbackTo:           "deprecated.deployment.rollback.to"
 #DeprecatedTemplateGeneration:   "deprecated.daemonset.template.generation"
 #StatefulSetPodNameLabel:        "statefulset.kubernetes.io/pod-name"
+#PodIndexLabel:                  "apps.kubernetes.io/pod-index"
 
 // StatefulSet represents a set of pods with consistent identities.
 // Identities are defined as:
@@ -192,6 +193,7 @@ import (
 	// of the StatefulSet. Each pod will be named with the format
 	// <statefulsetname>-<podindex>. For example, a pod in a StatefulSet named
 	// "web" with index number "3" would be named "web-3".
+	// The only allowed template.spec.restartPolicy value is "Always".
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(3,bytes,opt)
 
 	// volumeClaimTemplates is a list of claims that pods are allowed to reference.
@@ -202,6 +204,7 @@ import (
 	// any volumes in the template, with the same name.
 	// TODO: Define the behavior if a claim already exists with the same name.
 	// +optional
+	// +listType=atomic
 	volumeClaimTemplates?: [...v1.#PersistentVolumeClaim] @go(VolumeClaimTemplates,[]v1.PersistentVolumeClaim) @protobuf(4,bytes,rep)
 
 	// serviceName is the name of the service that governs this StatefulSet.
@@ -245,14 +248,13 @@ import (
 	// policy allows the lifecycle to be altered, for example by deleting persistent
 	// volume claims when their stateful set is deleted, or when their pod is scaled
 	// down. This requires the StatefulSetAutoDeletePVC feature gate to be enabled,
-	// which is alpha.  +optional
+	// which is beta.
+	// +optional
 	persistentVolumeClaimRetentionPolicy?: null | #StatefulSetPersistentVolumeClaimRetentionPolicy @go(PersistentVolumeClaimRetentionPolicy,*StatefulSetPersistentVolumeClaimRetentionPolicy) @protobuf(10,bytes,opt)
 
 	// ordinals controls the numbering of replica indices in a StatefulSet. The
 	// default ordinals behavior assigns a "0" index to the first replica and
-	// increments the index by one for each additional replica requested. Using
-	// the ordinals field requires the StatefulSetStartOrdinal feature gate to be
-	// enabled, which is alpha.
+	// increments the index by one for each additional replica requested.
 	// +optional
 	ordinals?: null | #StatefulSetOrdinals @go(Ordinals,*StatefulSetOrdinals) @protobuf(11,bytes,opt)
 }
@@ -296,6 +298,8 @@ import (
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#StatefulSetCondition] @go(Conditions,[]StatefulSetCondition) @protobuf(10,bytes,rep)
 
 	// Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset.
@@ -370,6 +374,7 @@ import (
 	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(2,bytes,opt)
 
 	// Template describes the pods that will be created.
+	// The only allowed template.spec.restartPolicy value is "Always".
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(3,bytes,opt)
 
 	// The deployment strategy to use to replace existing pods with new ones.
@@ -495,6 +500,8 @@ import (
 	// Represents the latest available observations of a deployment's current state.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#DeploymentCondition] @go(Conditions,[]DeploymentCondition) @protobuf(6,bytes,rep)
 
 	// Count of hash collisions for the Deployment. The Deployment controller uses this
@@ -639,6 +646,7 @@ import (
 	// The DaemonSet will create exactly one copy of this pod on every node
 	// that matches the template's node selector (or on every node if no node
 	// selector is specified).
+	// The only allowed template.spec.restartPolicy value is "Always".
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(2,bytes,opt)
 
@@ -711,6 +719,8 @@ import (
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#DaemonSetCondition] @go(Conditions,[]DaemonSetCondition) @protobuf(10,bytes,rep)
 }
 
@@ -871,6 +881,8 @@ import (
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#ReplicaSetCondition] @go(Conditions,[]ReplicaSetCondition) @protobuf(6,bytes,rep)
 }
 

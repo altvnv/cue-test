@@ -7,6 +7,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 // Utility struct for a reference to a secret key.
@@ -166,6 +167,12 @@ import (
 	clusterDecisionResource?: null | #DuckTypeGenerator    @go(ClusterDecisionResource,*DuckTypeGenerator) @protobuf(5,bytes)
 	pullRequest?:             null | #PullRequestGenerator @go(PullRequest,*PullRequestGenerator) @protobuf(6,bytes)
 
+	// Matrix should have the form of NestedMatrixGenerator
+	matrix?: null | apiextensionsv1.#JSON @go(Matrix,*apiextensionsv1.JSON) @protobuf(7,bytes)
+
+	// Merge should have the form of NestedMergeGenerator
+	merge?: null | apiextensionsv1.#JSON @go(Merge,*apiextensionsv1.JSON) @protobuf(8,bytes)
+
 	// Selector allows to post-filter all generator.
 	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(9,bytes)
 	plugin?:   null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
@@ -194,6 +201,8 @@ import (
 
 // ListGenerator include items info
 #ListGenerator: {
+	// +kubebuilder:validation:Optional
+	elements: [...apiextensionsv1.#JSON] @go(Elements,[]apiextensionsv1.JSON) @protobuf(1,bytes)
 	template?:     #ApplicationSetTemplate @go(Template) @protobuf(2,bytes)
 	elementsYaml?: string                  @go(ElementsYaml) @protobuf(3,bytes,opt)
 }
@@ -254,9 +263,6 @@ import (
 
 	// Values contains key/value pairs which are passed directly as parameters to the template
 	values?: {[string]: string} @go(Values,map[string]string) @protobuf(3,bytes)
-
-	// returns the clusters a single 'clusters' value in the template
-	flatList?: bool @go(FlatList) @protobuf(4,bytes)
 }
 
 // DuckType defines a generator to match against clusters registered with ArgoCD.
@@ -668,9 +674,18 @@ import (
 	name: string @go(Name) @protobuf(1,bytes,opt)
 }
 
+#PluginParameters: [string]: apiextensionsv1.#JSON
+
+#PluginInput: {
+	// Parameters contains the information to pass to the plugin. It is a map. The keys must be strings, and the
+	// values can be any type.
+	parameters?: #PluginParameters @go(Parameters) @protobuf(1,bytes)
+}
+
 // PluginGenerator defines connection info specific to Plugin.
 #PluginGenerator: {
 	configMapRef: #PluginConfigMapRef @go(ConfigMapRef) @protobuf(1,bytes)
+	input?:       #PluginInput        @go(Input) @protobuf(2,bytes)
 
 	// RequeueAfterSeconds determines how long the ApplicationSet controller will wait before reconciling the ApplicationSet again.
 	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(3,varint,opt)
