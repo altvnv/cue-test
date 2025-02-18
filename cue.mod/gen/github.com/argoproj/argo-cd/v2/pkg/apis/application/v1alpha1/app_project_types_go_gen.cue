@@ -4,8 +4,6 @@
 
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 // serviceAccountDisallowedCharSet contains the characters that are not allowed to be present
 // in a DefaultServiceAccount configured for a DestinationServiceAccount
 _#serviceAccountDisallowedCharSet: "!*[]{}\\/"
@@ -13,8 +11,6 @@ _#serviceAccountDisallowedCharSet: "!*[]{}\\/"
 // AppProjectList is list of AppProject resources
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 #AppProjectList: {
-	metav1.#TypeMeta
-	metadata: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#AppProject] @go(Items,[]AppProject) @protobuf(2,bytes,rep)
 }
 
@@ -29,10 +25,8 @@ _#serviceAccountDisallowedCharSet: "!*[]{}\\/"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=appprojects,shortName=appproj;appprojs
 #AppProject: {
-	metav1.#TypeMeta
-	metadata: metav1.#ObjectMeta @go(ObjectMeta) @protobuf(1,bytes,opt)
-	spec:     #AppProjectSpec    @go(Spec) @protobuf(2,bytes,opt)
-	status?:  #AppProjectStatus  @go(Status) @protobuf(3,bytes,opt)
+	spec:    #AppProjectSpec   @go(Spec) @protobuf(2,bytes,opt)
+	status?: #AppProjectStatus @go(Status) @protobuf(3,bytes,opt)
 }
 
 // AppProjectStatus contains status information for AppProject CRs

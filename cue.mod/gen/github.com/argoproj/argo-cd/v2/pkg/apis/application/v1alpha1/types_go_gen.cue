@@ -4,14 +4,6 @@
 
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/api/core/v1"
-)
-
 // Application is a definition of Application resource.
 // +genclient
 // +genclient:noStatus
@@ -22,8 +14,6 @@ import (
 // +kubebuilder:printcolumn:name="Revision",type=string,JSONPath=`.status.sync.revision`,priority=10
 // +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.project`,priority=10
 #Application: {
-	metav1.#TypeMeta
-	metadata:   metav1.#ObjectMeta @go(ObjectMeta) @protobuf(1,bytes,opt)
 	spec:       #ApplicationSpec   @go(Spec) @protobuf(2,bytes,opt)
 	status?:    #ApplicationStatus @go(Status) @protobuf(3,bytes,opt)
 	operation?: null | #Operation  @go(Operation,*Operation) @protobuf(4,bytes,opt)
@@ -238,10 +228,6 @@ import (
 	// SkipCrds skips custom resource definition installation step (Helm's --skip-crds)
 	skipCrds?: bool @go(SkipCrds) @protobuf(9,bytes,opt)
 
-	// ValuesObject specifies Helm values to be passed to helm template, defined as a map. This takes precedence over Values.
-	// +kubebuilder:pruning:PreserveUnknownFields
-	valuesObject?: null | runtime.#RawExtension @go(ValuesObject,*runtime.RawExtension) @protobuf(10,bytes,opt)
-
 	// Namespace is an optional namespace to template with. If left empty, defaults to the app's destination namespace.
 	namespace?: string @go(Namespace) @protobuf(11,bytes,opt)
 
@@ -343,9 +329,6 @@ import (
 #KustomizeReplica: {
 	// Name of Deployment or StatefulSet
 	name: string @go(Name) @protobuf(1,bytes)
-
-	// Number of replicas
-	count: intstr.#IntOrString @go(Count) @protobuf(2,bytes)
 }
 
 #KustomizeReplicas: [...#KustomizeReplica]
@@ -456,15 +439,8 @@ import (
 	// Conditions is a list of currently observed application conditions
 	conditions?: [...#ApplicationCondition] @go(Conditions,[]ApplicationCondition) @protobuf(5,bytes,opt)
 
-	// ReconciledAt indicates when the application state was reconciled using the latest git version
-	reconciledAt?: null | metav1.#Time @go(ReconciledAt,*metav1.Time) @protobuf(6,bytes,opt)
-
 	// OperationState contains information about any ongoing operations, such as a sync
 	operationState?: null | #OperationState @go(OperationState,*OperationState) @protobuf(7,bytes,opt)
-
-	// ObservedAt indicates when the application state was updated without querying latest git state
-	// Deprecated: controller no longer updates ObservedAt field
-	observedAt?: null | metav1.#Time @go(ObservedAt,*metav1.Time) @protobuf(8,bytes,opt)
 
 	// SourceType specifies the type of this application
 	sourceType?: #ApplicationSourceType @go(SourceType) @protobuf(9,bytes,opt)
@@ -496,12 +472,6 @@ import (
 
 // HydrateOperation contains information about the most recent hydrate operation
 #HydrateOperation: {
-	// StartedAt indicates when the hydrate operation started
-	startedAt?: metav1.#Time @go(StartedAt) @protobuf(1,bytes,opt)
-
-	// FinishedAt indicates when the hydrate operation finished
-	finishedAt?: null | metav1.#Time @go(FinishedAt,*metav1.Time) @protobuf(2,bytes,opt)
-
 	// Phase indicates the status of the hydrate operation
 	phase: #HydrateOperationPhase @go(Phase) @protobuf(3,bytes,opt)
 
@@ -634,12 +604,6 @@ import (
 	// SyncResult is the result of a Sync operation
 	syncResult?: null | #SyncOperationResult @go(SyncResult,*SyncOperationResult) @protobuf(4,bytes,opt)
 
-	// StartedAt contains time of operation start
-	startedAt: metav1.#Time @go(StartedAt) @protobuf(6,bytes,opt)
-
-	// FinishedAt contains time of operation completion
-	finishedAt?: null | metav1.#Time @go(FinishedAt,*metav1.Time) @protobuf(7,bytes,opt)
-
 	// RetryCount contains time of operation retries
 	retryCount?: int64 @go(RetryCount) @protobuf(8,bytes,opt)
 }
@@ -734,9 +698,6 @@ import (
 	// but might not match this example
 	author?: string @go(Author) @protobuf(1,bytes,opt)
 
-	// Date specifies when the revision was authored
-	date: metav1.#Time @go(Date) @protobuf(2,bytes,opt)
-
 	// Tags specifies any tags currently attached to the revision
 	// Floating tags can move from one revision to another
 	tags?: [...string] @go(Tags,[]string) @protobuf(3,bytes,opt)
@@ -809,17 +770,11 @@ import (
 	// Revision holds the revision the sync was performed against
 	revision?: string @go(Revision) @protobuf(2,bytes,opt)
 
-	// DeployedAt holds the time the sync operation completed
-	deployedAt: metav1.#Time @go(DeployedAt) @protobuf(4,bytes,opt)
-
 	// ID is an auto incrementing identifier of the RevisionHistory
 	id: int64 @go(ID) @protobuf(5,bytes,opt)
 
 	// Source is a reference to the application source used for the sync operation
 	source?: #ApplicationSource @go(Source) @protobuf(6,bytes,opt)
-
-	// DeployStartedAt holds the time the sync operation started
-	deployStartedAt?: null | metav1.#Time @go(DeployStartedAt,*metav1.Time) @protobuf(7,bytes,opt)
 
 	// Sources is a reference to the application sources used for the sync operation
 	sources?: #ApplicationSources @go(Sources) @protobuf(8,bytes,opt)
@@ -833,8 +788,6 @@ import (
 
 // ApplicationWatchEvent contains information about application change.
 #ApplicationWatchEvent: {
-	type: watch.#EventType @go(Type) @protobuf(1,bytes,opt,casttype=k8s.io/apimachinery/pkg/watch.EventType)
-
 	// Application is:
 	//  * If Type is Added or Modified: the new state of the object.
 	//  * If Type is Deleted: the state of the object immediately before deletion.
@@ -846,8 +799,6 @@ import (
 // ApplicationList is list of Application resources
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 #ApplicationList: {
-	metav1.#TypeMeta
-	metadata: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#Application] @go(Items,[]Application) @protobuf(2,bytes,rep)
 }
 
@@ -922,9 +873,6 @@ import (
 
 	// Message contains human-readable message indicating details about condition
 	message: string @go(Message) @protobuf(2,bytes,opt)
-
-	// LastTransitionTime is the time the condition was last observed
-	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // ComparedTo contains application source and target which was used for resources comparison
@@ -961,9 +909,6 @@ import (
 #HealthStatus: {
 	// Message is a human-readable informational message describing the health status
 	message?: string @go(Message) @protobuf(2,bytes,opt)
-
-	// LastTransitionTime is the time the HealthStatus was set or updated
-	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // InfoItem contains arbitrary, human readable information about an application
@@ -981,7 +926,6 @@ import (
 	targetLabels?: {[string]: string} @go(TargetLabels,map[string]string) @protobuf(1,bytes,opt)
 	targetRefs?: [...#ResourceRef] @go(TargetRefs,[]ResourceRef) @protobuf(2,bytes,opt)
 	labels?: {[string]: string} @go(Labels,map[string]string) @protobuf(3,bytes,opt)
-	ingress?: [...v1.#LoadBalancerIngress] @go(Ingress,[]v1.LoadBalancerIngress) @protobuf(4,bytes,opt)
 
 	// ExternalURLs holds list of URLs which should be available externally. List is populated for ingress resources using rules hostnames.
 	externalURLs?: [...string] @go(ExternalURLs,[]string) @protobuf(5,bytes,opt)
@@ -989,10 +933,9 @@ import (
 
 // TODO: describe this type
 #HostResourceInfo: {
-	resourceName?:         v1.#ResourceName @go(ResourceName) @protobuf(1,bytes)
-	requestedByApp?:       int64            @go(RequestedByApp) @protobuf(2,bytes)
-	requestedByNeighbors?: int64            @go(RequestedByNeighbors) @protobuf(3,bytes)
-	capacity?:             int64            @go(Capacity) @protobuf(4,bytes)
+	requestedByApp?:       int64 @go(RequestedByApp) @protobuf(2,bytes)
+	requestedByNeighbors?: int64 @go(RequestedByNeighbors) @protobuf(3,bytes)
+	capacity?:             int64 @go(Capacity) @protobuf(4,bytes)
 }
 
 // HostInfo holds host name and resources metrics
@@ -1001,7 +944,6 @@ import (
 #HostInfo: {
 	name?: string @go(Name) @protobuf(1,bytes)
 	resourcesInfo?: [...#HostResourceInfo] @go(ResourcesInfo,[]HostResourceInfo) @protobuf(2,bytes)
-	systemInfo?: v1.#NodeSystemInfo @go(SystemInfo) @protobuf(3,bytes,opt)
 }
 
 // ApplicationTree holds nodes which belongs to the application
@@ -1048,8 +990,7 @@ import (
 	networkingInfo?:  null | #ResourceNetworkingInfo @go(NetworkingInfo,*ResourceNetworkingInfo) @protobuf(4,bytes,opt)
 	resourceVersion?: string                         @go(ResourceVersion) @protobuf(5,bytes,opt)
 	images?: [...string] @go(Images,[]string) @protobuf(6,bytes,opt)
-	health?:    null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
-	createdAt?: null | metav1.#Time  @go(CreatedAt,*metav1.Time) @protobuf(8,bytes,opt)
+	health?: null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
 }
 
 // ResourceStatus holds the current sync and health status of a resource
@@ -1122,9 +1063,6 @@ import (
 
 	// Message contains human readable information about the connection status
 	message: string @go(Message) @protobuf(2,bytes,opt)
-
-	// ModifiedAt contains the timestamp when this connection status has been determined
-	attemptedAt?: null | metav1.#Time @go(ModifiedAt,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // Cluster is the definition of a cluster resource
@@ -1148,9 +1086,6 @@ import (
 
 	// Holds list of namespaces which are accessible in that cluster. Cluster level resources will be ignored if namespace list is not empty.
 	namespaces?: [...string] @go(Namespaces,[]string) @protobuf(6,bytes,opt)
-
-	// RefreshRequestedAt holds time when cluster cache refresh has been requested
-	refreshRequestedAt?: null | metav1.#Time @go(RefreshRequestedAt,*metav1.Time) @protobuf(7,bytes,opt)
 
 	// Info holds information about cluster cache and state
 	info?: #ClusterInfo @go(Info) @protobuf(8,bytes,opt)
@@ -1196,14 +1131,10 @@ import (
 
 	// APIsCount holds number of observed Kubernetes API count
 	apisCount?: int64 @go(APIsCount) @protobuf(2,bytes,opt)
-
-	// LastCacheSyncTime holds time of most recent cache synchronization
-	lastCacheSyncTime?: null | metav1.#Time @go(LastCacheSyncTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // ClusterList is a collection of Clusters.
 #ClusterList: {
-	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#Cluster] @go(Items,[]Cluster) @protobuf(2,bytes,rep)
 }
 
@@ -1394,26 +1325,14 @@ _#rawResourceOverride: {
 	// Roles are user defined RBAC roles associated with this project
 	roles?: [...#ProjectRole] @go(Roles,[]ProjectRole) @protobuf(4,bytes,rep)
 
-	// ClusterResourceWhitelist contains list of whitelisted cluster level resources
-	clusterResourceWhitelist?: [...metav1.#GroupKind] @go(ClusterResourceWhitelist,[]metav1.GroupKind) @protobuf(5,bytes,opt)
-
-	// NamespaceResourceBlacklist contains list of blacklisted namespace level resources
-	namespaceResourceBlacklist?: [...metav1.#GroupKind] @go(NamespaceResourceBlacklist,[]metav1.GroupKind) @protobuf(6,bytes,opt)
-
 	// OrphanedResources specifies if controller should monitor orphaned resources of apps in this project
 	orphanedResources?: null | #OrphanedResourcesMonitorSettings @go(OrphanedResources,*OrphanedResourcesMonitorSettings) @protobuf(7,bytes,opt)
 
 	// SyncWindows controls when syncs can be run for apps in this project
 	syncWindows?: #SyncWindows @go(SyncWindows) @protobuf(8,bytes,opt)
 
-	// NamespaceResourceWhitelist contains list of whitelisted namespace level resources
-	namespaceResourceWhitelist?: [...metav1.#GroupKind] @go(NamespaceResourceWhitelist,[]metav1.GroupKind) @protobuf(9,bytes,opt)
-
 	// SignatureKeys contains a list of PGP key IDs that commits in Git must be signed with in order to be allowed for sync
 	signatureKeys?: [...#SignatureKey] @go(SignatureKeys,[]SignatureKey) @protobuf(10,bytes,opt)
-
-	// ClusterResourceBlacklist contains list of blacklisted cluster level resources
-	clusterResourceBlacklist?: [...metav1.#GroupKind] @go(ClusterResourceBlacklist,[]metav1.GroupKind) @protobuf(11,bytes,opt)
 
 	// SourceNamespaces defines the namespaces application resources are allowed to be created in
 	sourceNamespaces?: [...string] @go(SourceNamespaces,[]string) @protobuf(12,bytes,opt)

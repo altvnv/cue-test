@@ -3,8 +3,8 @@ package gitops
 import (
 	"encoding/yaml"
 	"text/tabwriter"
-	"tool/cli"
 	"tool/exec"
+	"tool/cli"
 )
 
 objectSets: [
@@ -20,7 +20,7 @@ objectSets: [
 	envoyproxy,
 ]
 
-objects: [ for sets in objectSets for set in sets for object in set {object}]
+objects: [for sets in objectSets for set in sets for object in set {object}]
 
 command: test: {
 	task: kube: exec.Run & {

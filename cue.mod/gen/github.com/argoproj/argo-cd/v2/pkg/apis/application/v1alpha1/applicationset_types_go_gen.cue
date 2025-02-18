@@ -4,11 +4,6 @@
 
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
 // Utility struct for a reference to a secret key.
 #SecretRef: {
 	secretName: string @go(SecretName) @protobuf(1,bytes,opt)
@@ -28,10 +23,8 @@ import (
 // +kubebuilder:resource:path=applicationsets,shortName=appset;appsets
 // +kubebuilder:subresource:status
 #ApplicationSet: {
-	metav1.#TypeMeta
-	metadata: metav1.#ObjectMeta    @go(ObjectMeta) @protobuf(1,bytes,opt)
-	spec:     #ApplicationSetSpec   @go(Spec) @protobuf(2,bytes,opt)
-	status?:  #ApplicationSetStatus @go(Status) @protobuf(3,bytes,opt)
+	spec:    #ApplicationSetSpec   @go(Spec) @protobuf(2,bytes,opt)
+	status?: #ApplicationSetStatus @go(Status) @protobuf(3,bytes,opt)
 }
 
 // ApplicationSetSpec represents a class of application set state.
@@ -67,7 +60,6 @@ import (
 
 #ApplicationSetRolloutStep: {
 	matchExpressions?: [...#ApplicationMatchExpression] @go(MatchExpressions,[]ApplicationMatchExpression) @protobuf(1,bytes,opt)
-	maxUpdate?: null | intstr.#IntOrString @go(MaxUpdate,*intstr.IntOrString) @protobuf(2,bytes,opt)
 }
 
 #ApplicationMatchExpression: {
@@ -150,10 +142,7 @@ import (
 	pullRequest?:             null | #PullRequestGenerator @go(PullRequest,*PullRequestGenerator) @protobuf(6,bytes)
 	matrix?:                  null | #MatrixGenerator      @go(Matrix,*MatrixGenerator) @protobuf(7,bytes)
 	merge?:                   null | #MergeGenerator       @go(Merge,*MergeGenerator) @protobuf(8,bytes)
-
-	// Selector allows to post-filter all generator.
-	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(9,bytes)
-	plugin?:   null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
+	plugin?:                  null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
 }
 
 // ApplicationSetNestedGenerator represents a generator nested within a combination-type generator (MatrixGenerator or
@@ -165,10 +154,7 @@ import (
 	scmProvider?:             null | #SCMProviderGenerator @go(SCMProvider,*SCMProviderGenerator) @protobuf(4,bytes)
 	clusterDecisionResource?: null | #DuckTypeGenerator    @go(ClusterDecisionResource,*DuckTypeGenerator) @protobuf(5,bytes)
 	pullRequest?:             null | #PullRequestGenerator @go(PullRequest,*PullRequestGenerator) @protobuf(6,bytes)
-
-	// Selector allows to post-filter all generator.
-	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(9,bytes)
-	plugin?:   null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
+	plugin?:                  null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
 }
 
 #ApplicationSetNestedGenerators: [...#ApplicationSetNestedGenerator]
@@ -185,9 +171,6 @@ import (
 	clusterDecisionResource?: null | #DuckTypeGenerator    @go(ClusterDecisionResource,*DuckTypeGenerator) @protobuf(5,bytes)
 	pullRequest?:             null | #PullRequestGenerator @go(PullRequest,*PullRequestGenerator) @protobuf(6,bytes)
 	plugin?:                  null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(7,bytes)
-
-	// Selector allows to post-filter all generator.
-	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(8,bytes)
 }
 
 #ApplicationSetTerminalGenerators: [...#ApplicationSetTerminalGenerator]
@@ -246,10 +229,6 @@ import (
 
 // ClusterGenerator defines a generator to match against clusters registered with ArgoCD.
 #ClusterGenerator: {
-	// Selector defines a label selector to match against all clusters registered with ArgoCD.
-	// Clusters today are stored as Kubernetes Secrets, thus the Secret labels will be used
-	// for matching the selector.
-	selector?: metav1.#LabelSelector   @go(Selector) @protobuf(1,bytes)
 	template?: #ApplicationSetTemplate @go(Template) @protobuf(2,bytes)
 
 	// Values contains key/value pairs which are passed directly as parameters to the template
@@ -268,7 +247,6 @@ import (
 	configMapRef:         string                  @go(ConfigMapRef) @protobuf(1,bytes)
 	name?:                string                  @go(Name) @protobuf(2,bytes)
 	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(3,bytes)
-	labelSelector?:       metav1.#LabelSelector   @go(LabelSelector) @protobuf(4,bytes)
 	template?:            #ApplicationSetTemplate @go(Template) @protobuf(5,bytes)
 
 	// Values contains key/value pairs which are passed directly as parameters to the template
@@ -700,9 +678,6 @@ import (
 	// Message contains human-readable message indicating details about condition
 	message: string @go(Message) @protobuf(2,bytes,opt)
 
-	// LastTransitionTime is the time the condition was last observed
-	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(3,bytes,opt)
-
 	// True/False/Unknown
 	status: #ApplicationSetConditionStatus @go(Status) @protobuf(4,bytes,opt)
 
@@ -766,9 +741,6 @@ import (
 	// Application contains the name of the Application resource
 	application: string @go(Application) @protobuf(1,bytes,opt)
 
-	// LastTransitionTime is the time the status was last updated
-	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(2,bytes,opt)
-
 	// Message contains human-readable message indicating details about the status
 	message: string @go(Message) @protobuf(3,bytes,opt)
 
@@ -786,8 +758,6 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 #ApplicationSetList: {
-	metav1.#TypeMeta
-	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#ApplicationSet] @go(Items,[]ApplicationSet) @protobuf(2,bytes,rep)
 }
 
