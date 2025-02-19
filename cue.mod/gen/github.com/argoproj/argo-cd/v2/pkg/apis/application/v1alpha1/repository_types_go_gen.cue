@@ -4,6 +4,8 @@
 
 package v1alpha1
 
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 // RepoCreds holds the definition for repository credentials
 #RepoCreds: {
 	// URL is the URL to which these credentials match
@@ -133,11 +135,13 @@ package v1alpha1
 
 // RepositoryList is a collection of Repositories.
 #RepositoryList: {
-	items: #Repositories @go(Items) @protobuf(2,bytes,rep)
+	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
+	items:     #Repositories    @go(Items) @protobuf(2,bytes,rep)
 }
 
 // RepositoryList is a collection of Repositories.
 #RepoCredsList: {
+	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#RepoCreds] @go(Items,[]RepoCreds) @protobuf(2,bytes,rep)
 }
 
@@ -161,6 +165,8 @@ package v1alpha1
 
 // RepositoryCertificateList is a collection of RepositoryCertificates
 #RepositoryCertificateList: {
+	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
+
 	// List of certificates to be processed
 	items: [...#RepositoryCertificate] @go(Items,[]RepositoryCertificate) @protobuf(2,bytes,rep)
 }
@@ -188,5 +194,6 @@ package v1alpha1
 
 // GnuPGPublicKeyList is a collection of GnuPGPublicKey objects
 #GnuPGPublicKeyList: {
+	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#GnuPGPublicKey] @go(Items,[]GnuPGPublicKey) @protobuf(2,bytes,rep)
 }

@@ -4,6 +4,14 @@
 
 package v1alpha1
 
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/api/core/v1"
+)
+
 // Application is a definition of Application resource.
 // +genclient
 // +genclient:noStatus
@@ -14,6 +22,8 @@ package v1alpha1
 // +kubebuilder:printcolumn:name="Revision",type=string,JSONPath=`.status.sync.revision`,priority=10
 // +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.project`,priority=10
 #Application: {
+	metav1.#TypeMeta
+	metadata:   metav1.#ObjectMeta @go(ObjectMeta) @protobuf(1,bytes,opt)
 	spec:       #ApplicationSpec   @go(Spec) @protobuf(2,bytes,opt)
 	status?:    #ApplicationStatus @go(Status) @protobuf(3,bytes,opt)
 	operation?: null | #Operation  @go(Operation,*Operation) @protobuf(4,bytes,opt)
@@ -49,9 +59,6 @@ package v1alpha1
 
 	// Sources is a reference to the location of the application's manifests or chart
 	sources?: #ApplicationSources @go(Sources) @protobuf(8,bytes,opt)
-
-	// SourceHydrator provides a way to push hydrated manifests back to git before syncing them to the cluster.
-	sourceHydrator?: null | #SourceHydrator @go(SourceHydrator,*SourceHydrator) @protobuf(9,bytes,opt)
 }
 
 #IgnoreDifferences: [...#ResourceIgnoreDifferences]
@@ -114,9 +121,6 @@ package v1alpha1
 
 	// Ref is reference to another source within sources field. This field will not be used if used with a `source` tag.
 	ref?: string @go(Ref) @protobuf(13,bytes,opt)
-
-	// Name is used to refer to a source and is displayed in the UI. It is used in multi-source Applications.
-	name?: string @go(Name) @protobuf(14,bytes,opt)
 }
 
 // ApplicationSources contains list of required information about the sources of an application
@@ -135,50 +139,6 @@ package v1alpha1
 #ApplicationSourceTypeKustomize: #ApplicationSourceType & "Kustomize"
 #ApplicationSourceTypeDirectory: #ApplicationSourceType & "Directory"
 #ApplicationSourceTypePlugin:    #ApplicationSourceType & "Plugin"
-
-// SourceHydrator specifies a dry "don't repeat yourself" source for manifests, a sync source from which to sync
-// hydrated manifests, and an optional hydrateTo location to act as a "staging" aread for hydrated manifests.
-#SourceHydrator: {
-	// DrySource specifies where the dry "don't repeat yourself" manifest source lives.
-	drySource: #DrySource @go(DrySource) @protobuf(1,bytes)
-
-	// SyncSource specifies where to sync hydrated manifests from.
-	syncSource: #SyncSource @go(SyncSource) @protobuf(2,bytes)
-
-	// HydrateTo specifies an optional "staging" location to push hydrated manifests to. An external system would then
-	// have to move manifests to the SyncSource, e.g. by pull request.
-	hydrateTo?: null | #HydrateTo @go(HydrateTo,*HydrateTo) @protobuf(3,bytes,opt)
-}
-
-// DrySource specifies a location for dry "don't repeat yourself" manifest source information.
-#DrySource: {
-	// RepoURL is the URL to the git repository that contains the application manifests
-	repoURL: string @go(RepoURL) @protobuf(1,bytes)
-
-	// TargetRevision defines the revision of the source to hydrate
-	targetRevision: string @go(TargetRevision) @protobuf(2,bytes)
-
-	// Path is a directory path within the Git repository where the manifests are located
-	path: string @go(Path) @protobuf(3,bytes)
-}
-
-// SyncSource specifies a location from which hydrated manifests may be synced. RepoURL is assumed based on the
-// associated DrySource config in the SourceHydrator.
-#SyncSource: {
-	// TargetBranch is the branch to which hydrated manifests should be committed
-	targetBranch: string @go(TargetBranch) @protobuf(1,bytes)
-
-	// Path is a directory path within the git repository where hydrated manifests should be committed to and synced
-	// from. If hydrateTo is set, this is just the path from which hydrated manifests will be synced.
-	path: string @go(Path) @protobuf(2,bytes)
-}
-
-// HydrateTo specifies a location to which hydrated manifests should be pushed as a "staging area" before being moved to
-// the SyncSource. The RepoURL and Path are assumed based on the associated SyncSource config in the SourceHydrator.
-#HydrateTo: {
-	// TargetBranch is the branch to which hydrated manifests should be committed
-	targetBranch: string @go(TargetBranch) @protobuf(1,bytes)
-}
 
 // RefreshType specifies how to refresh the sources of a given application
 #RefreshType: string // #enumRefreshType
@@ -228,6 +188,10 @@ package v1alpha1
 	// SkipCrds skips custom resource definition installation step (Helm's --skip-crds)
 	skipCrds?: bool @go(SkipCrds) @protobuf(9,bytes,opt)
 
+	// ValuesObject specifies Helm values to be passed to helm template, defined as a map. This takes precedence over Values.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	valuesObject?: null | runtime.#RawExtension @go(ValuesObject,*runtime.RawExtension) @protobuf(10,bytes,opt)
+
 	// Namespace is an optional namespace to template with. If left empty, defaults to the app's destination namespace.
 	namespace?: string @go(Namespace) @protobuf(11,bytes,opt)
 
@@ -238,12 +202,6 @@ package v1alpha1
 	// APIVersions specifies the Kubernetes resource API versions to pass to Helm when templating manifests. By default,
 	// Argo CD uses the API versions of the target cluster. The format is [group/]version/kind.
 	apiVersions?: [...string] @go(APIVersions,[]string) @protobuf(13,bytes,opt)
-
-	// SkipTests skips test manifest installation step (Helm's --skip-tests).
-	skipTests?: bool @go(SkipTests) @protobuf(14,bytes,opt)
-
-	// SkipSchemaValidation skips JSON schema validation (Helm's --skip-schema-validation)
-	skipSchemaValidation?: bool @go(SkipSchemaValidation) @protobuf(15,bytes,opt)
 }
 
 // HelmParameter is a parameter that's passed to helm template during manifest generation
@@ -329,6 +287,9 @@ package v1alpha1
 #KustomizeReplica: {
 	// Name of Deployment or StatefulSet
 	name: string @go(Name) @protobuf(1,bytes)
+
+	// Number of replicas
+	count: intstr.#IntOrString @go(Count) @protobuf(2,bytes)
 }
 
 #KustomizeReplicas: [...#KustomizeReplica]
@@ -439,8 +400,15 @@ package v1alpha1
 	// Conditions is a list of currently observed application conditions
 	conditions?: [...#ApplicationCondition] @go(Conditions,[]ApplicationCondition) @protobuf(5,bytes,opt)
 
+	// ReconciledAt indicates when the application state was reconciled using the latest git version
+	reconciledAt?: null | metav1.#Time @go(ReconciledAt,*metav1.Time) @protobuf(6,bytes,opt)
+
 	// OperationState contains information about any ongoing operations, such as a sync
 	operationState?: null | #OperationState @go(OperationState,*OperationState) @protobuf(7,bytes,opt)
+
+	// ObservedAt indicates when the application state was updated without querying latest git state
+	// Deprecated: controller no longer updates ObservedAt field
+	observedAt?: null | metav1.#Time @go(ObservedAt,*metav1.Time) @protobuf(8,bytes,opt)
 
 	// SourceType specifies the type of this application
 	sourceType?: #ApplicationSourceType @go(SourceType) @protobuf(9,bytes,opt)
@@ -456,62 +424,7 @@ package v1alpha1
 
 	// ControllerNamespace indicates the namespace in which the application controller is located
 	controllerNamespace?: string @go(ControllerNamespace) @protobuf(13,bytes,opt)
-
-	// SourceHydrator stores information about the current state of source hydration
-	sourceHydrator?: #SourceHydratorStatus @go(SourceHydrator) @protobuf(14,bytes,opt)
 }
-
-// SourceHydratorStatus contains information about the current state of source hydration
-#SourceHydratorStatus: {
-	// LastSuccessfulOperation holds info about the most recent successful hydration
-	lastSuccessfulOperation?: null | #SuccessfulHydrateOperation @go(LastSuccessfulOperation,*SuccessfulHydrateOperation) @protobuf(1,bytes,opt)
-
-	// CurrentOperation holds the status of the hydrate operation
-	currentOperation?: null | #HydrateOperation @go(CurrentOperation,*HydrateOperation) @protobuf(2,bytes,opt)
-}
-
-// HydrateOperation contains information about the most recent hydrate operation
-#HydrateOperation: {
-	// Phase indicates the status of the hydrate operation
-	phase: #HydrateOperationPhase @go(Phase) @protobuf(3,bytes,opt)
-
-	// Message contains a message describing the current status of the hydrate operation
-	message: string @go(Message) @protobuf(4,bytes,opt)
-
-	// DrySHA holds the resolved revision (sha) of the dry source as of the most recent reconciliation
-	drySHA?: string @go(DrySHA) @protobuf(5,bytes,opt)
-
-	// HydratedSHA holds the resolved revision (sha) of the hydrated source as of the most recent reconciliation
-	hydratedSHA?: string @go(HydratedSHA) @protobuf(6,bytes,opt)
-
-	// SourceHydrator holds the hydrator config used for the hydrate operation
-	sourceHydrator?: #SourceHydrator @go(SourceHydrator) @protobuf(7,bytes,opt)
-}
-
-// SuccessfulHydrateOperation contains information about the most recent successful hydrate operation
-#SuccessfulHydrateOperation: {
-	// DrySHA holds the resolved revision (sha) of the dry source as of the most recent reconciliation
-	drySHA?: string @go(DrySHA) @protobuf(5,bytes,opt)
-
-	// HydratedSHA holds the resolved revision (sha) of the hydrated source as of the most recent reconciliation
-	hydratedSHA?: string @go(HydratedSHA) @protobuf(6,bytes,opt)
-
-	// SourceHydrator holds the hydrator config used for the hydrate operation
-	sourceHydrator?: #SourceHydrator @go(SourceHydrator) @protobuf(7,bytes,opt)
-}
-
-// HydrateOperationPhase indicates the status of a hydrate operation
-// +kubebuilder:validation:Enum=Hydrating;Failed;Hydrated
-#HydrateOperationPhase: string // #enumHydrateOperationPhase
-
-#enumHydrateOperationPhase:
-	#HydrateOperationPhaseHydrating |
-	#HydrateOperationPhaseFailed |
-	#HydrateOperationPhaseHydrated
-
-#HydrateOperationPhaseHydrating: #HydrateOperationPhase & "Hydrating"
-#HydrateOperationPhaseFailed:    #HydrateOperationPhase & "Failed"
-#HydrateOperationPhaseHydrated:  #HydrateOperationPhase & "Hydrated"
 
 // JWTTokens represents a list of JWT tokens
 #JWTTokens: {
@@ -603,6 +516,12 @@ package v1alpha1
 
 	// SyncResult is the result of a Sync operation
 	syncResult?: null | #SyncOperationResult @go(SyncResult,*SyncOperationResult) @protobuf(4,bytes,opt)
+
+	// StartedAt contains time of operation start
+	startedAt: metav1.#Time @go(StartedAt) @protobuf(6,bytes,opt)
+
+	// FinishedAt contains time of operation completion
+	finishedAt?: null | metav1.#Time @go(FinishedAt,*metav1.Time) @protobuf(7,bytes,opt)
 
 	// RetryCount contains time of operation retries
 	retryCount?: int64 @go(RetryCount) @protobuf(8,bytes,opt)
@@ -698,6 +617,9 @@ package v1alpha1
 	// but might not match this example
 	author?: string @go(Author) @protobuf(1,bytes,opt)
 
+	// Date specifies when the revision was authored
+	date: metav1.#Time @go(Date) @protobuf(2,bytes,opt)
+
 	// Tags specifies any tags currently attached to the revision
 	// Floating tags can move from one revision to another
 	tags?: [...string] @go(Tags,[]string) @protobuf(3,bytes,opt)
@@ -770,11 +692,17 @@ package v1alpha1
 	// Revision holds the revision the sync was performed against
 	revision?: string @go(Revision) @protobuf(2,bytes,opt)
 
+	// DeployedAt holds the time the sync operation completed
+	deployedAt: metav1.#Time @go(DeployedAt) @protobuf(4,bytes,opt)
+
 	// ID is an auto incrementing identifier of the RevisionHistory
 	id: int64 @go(ID) @protobuf(5,bytes,opt)
 
 	// Source is a reference to the application source used for the sync operation
 	source?: #ApplicationSource @go(Source) @protobuf(6,bytes,opt)
+
+	// DeployStartedAt holds the time the sync operation started
+	deployStartedAt?: null | metav1.#Time @go(DeployStartedAt,*metav1.Time) @protobuf(7,bytes,opt)
 
 	// Sources is a reference to the application sources used for the sync operation
 	sources?: #ApplicationSources @go(Sources) @protobuf(8,bytes,opt)
@@ -788,6 +716,8 @@ package v1alpha1
 
 // ApplicationWatchEvent contains information about application change.
 #ApplicationWatchEvent: {
+	type: watch.#EventType @go(Type) @protobuf(1,bytes,opt,casttype=k8s.io/apimachinery/pkg/watch.EventType)
+
 	// Application is:
 	//  * If Type is Added or Modified: the new state of the object.
 	//  * If Type is Deleted: the state of the object immediately before deletion.
@@ -799,6 +729,8 @@ package v1alpha1
 // ApplicationList is list of Application resources
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 #ApplicationList: {
+	metav1.#TypeMeta
+	metadata: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#Application] @go(Items,[]Application) @protobuf(2,bytes,rep)
 }
 
@@ -834,7 +766,6 @@ package v1alpha1
 
 #enumApplicationConditionType:
 	#AnnotationKeyRefresh |
-	#AnnotationKeyHydrate |
 	#ResourcesFinalizerName |
 	#PostDeleteFinalizerName |
 	#ForegroundPropagationPolicyFinalizer
@@ -873,6 +804,9 @@ package v1alpha1
 
 	// Message contains human-readable message indicating details about condition
 	message: string @go(Message) @protobuf(2,bytes,opt)
+
+	// LastTransitionTime is the time the condition was last observed
+	lastTransitionTime?: null | metav1.#Time @go(LastTransitionTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // ComparedTo contains application source and target which was used for resources comparison
@@ -926,6 +860,7 @@ package v1alpha1
 	targetLabels?: {[string]: string} @go(TargetLabels,map[string]string) @protobuf(1,bytes,opt)
 	targetRefs?: [...#ResourceRef] @go(TargetRefs,[]ResourceRef) @protobuf(2,bytes,opt)
 	labels?: {[string]: string} @go(Labels,map[string]string) @protobuf(3,bytes,opt)
+	ingress?: [...v1.#LoadBalancerIngress] @go(Ingress,[]v1.LoadBalancerIngress) @protobuf(4,bytes,opt)
 
 	// ExternalURLs holds list of URLs which should be available externally. List is populated for ingress resources using rules hostnames.
 	externalURLs?: [...string] @go(ExternalURLs,[]string) @protobuf(5,bytes,opt)
@@ -933,9 +868,10 @@ package v1alpha1
 
 // TODO: describe this type
 #HostResourceInfo: {
-	requestedByApp?:       int64 @go(RequestedByApp) @protobuf(2,bytes)
-	requestedByNeighbors?: int64 @go(RequestedByNeighbors) @protobuf(3,bytes)
-	capacity?:             int64 @go(Capacity) @protobuf(4,bytes)
+	resourceName?:         v1.#ResourceName @go(ResourceName) @protobuf(1,bytes)
+	requestedByApp?:       int64            @go(RequestedByApp) @protobuf(2,bytes)
+	requestedByNeighbors?: int64            @go(RequestedByNeighbors) @protobuf(3,bytes)
+	capacity?:             int64            @go(Capacity) @protobuf(4,bytes)
 }
 
 // HostInfo holds host name and resources metrics
@@ -944,6 +880,7 @@ package v1alpha1
 #HostInfo: {
 	name?: string @go(Name) @protobuf(1,bytes)
 	resourcesInfo?: [...#HostResourceInfo] @go(ResourcesInfo,[]HostResourceInfo) @protobuf(2,bytes)
+	systemInfo?: v1.#NodeSystemInfo @go(SystemInfo) @protobuf(3,bytes,opt)
 }
 
 // ApplicationTree holds nodes which belongs to the application
@@ -990,23 +927,23 @@ package v1alpha1
 	networkingInfo?:  null | #ResourceNetworkingInfo @go(NetworkingInfo,*ResourceNetworkingInfo) @protobuf(4,bytes,opt)
 	resourceVersion?: string                         @go(ResourceVersion) @protobuf(5,bytes,opt)
 	images?: [...string] @go(Images,[]string) @protobuf(6,bytes,opt)
-	health?: null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
+	health?:    null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
+	createdAt?: null | metav1.#Time  @go(CreatedAt,*metav1.Time) @protobuf(8,bytes,opt)
 }
 
 // ResourceStatus holds the current sync and health status of a resource
 // TODO: describe members of this type
 #ResourceStatus: {
-	group?:                        string               @go(Group) @protobuf(1,bytes,opt)
-	version?:                      string               @go(Version) @protobuf(2,bytes,opt)
-	kind?:                         string               @go(Kind) @protobuf(3,bytes,opt)
-	namespace?:                    string               @go(Namespace) @protobuf(4,bytes,opt)
-	name?:                         string               @go(Name) @protobuf(5,bytes,opt)
-	status?:                       #SyncStatusCode      @go(Status) @protobuf(6,bytes,opt)
-	health?:                       null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
-	hook?:                         bool                 @go(Hook) @protobuf(8,bytes,opt)
-	requiresPruning?:              bool                 @go(RequiresPruning) @protobuf(9,bytes,opt)
-	syncWave?:                     int64                @go(SyncWave) @protobuf(10,bytes,opt)
-	requiresDeletionConfirmation?: bool                 @go(RequiresDeletionConfirmation) @protobuf(11,bytes,opt)
+	group?:           string               @go(Group) @protobuf(1,bytes,opt)
+	version?:         string               @go(Version) @protobuf(2,bytes,opt)
+	kind?:            string               @go(Kind) @protobuf(3,bytes,opt)
+	namespace?:       string               @go(Namespace) @protobuf(4,bytes,opt)
+	name?:            string               @go(Name) @protobuf(5,bytes,opt)
+	status?:          #SyncStatusCode      @go(Status) @protobuf(6,bytes,opt)
+	health?:          null | #HealthStatus @go(Health,*HealthStatus) @protobuf(7,bytes,opt)
+	hook?:            bool                 @go(Hook) @protobuf(8,bytes,opt)
+	requiresPruning?: bool                 @go(RequiresPruning) @protobuf(9,bytes,opt)
+	syncWave?:        int64                @go(SyncWave) @protobuf(10,bytes,opt)
 }
 
 // ResourceDiff holds the diff of a live and target resource object
@@ -1042,7 +979,6 @@ package v1alpha1
 
 #enumConnectionStatus:
 	#AnnotationKeyRefresh |
-	#AnnotationKeyHydrate |
 	#ResourcesFinalizerName |
 	#PostDeleteFinalizerName |
 	#ForegroundPropagationPolicyFinalizer
@@ -1063,6 +999,9 @@ package v1alpha1
 
 	// Message contains human readable information about the connection status
 	message: string @go(Message) @protobuf(2,bytes,opt)
+
+	// ModifiedAt contains the timestamp when this connection status has been determined
+	attemptedAt?: null | metav1.#Time @go(ModifiedAt,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // Cluster is the definition of a cluster resource
@@ -1086,6 +1025,9 @@ package v1alpha1
 
 	// Holds list of namespaces which are accessible in that cluster. Cluster level resources will be ignored if namespace list is not empty.
 	namespaces?: [...string] @go(Namespaces,[]string) @protobuf(6,bytes,opt)
+
+	// RefreshRequestedAt holds time when cluster cache refresh has been requested
+	refreshRequestedAt?: null | metav1.#Time @go(RefreshRequestedAt,*metav1.Time) @protobuf(7,bytes,opt)
 
 	// Info holds information about cluster cache and state
 	info?: #ClusterInfo @go(Info) @protobuf(8,bytes,opt)
@@ -1131,10 +1073,14 @@ package v1alpha1
 
 	// APIsCount holds number of observed Kubernetes API count
 	apisCount?: int64 @go(APIsCount) @protobuf(2,bytes,opt)
+
+	// LastCacheSyncTime holds time of most recent cache synchronization
+	lastCacheSyncTime?: null | metav1.#Time @go(LastCacheSyncTime,*metav1.Time) @protobuf(3,bytes,opt)
 }
 
 // ClusterList is a collection of Clusters.
 #ClusterList: {
+	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 	items: [...#Cluster] @go(Items,[]Cluster) @protobuf(2,bytes,rep)
 }
 
@@ -1189,12 +1135,6 @@ package v1alpha1
 
 	// ExecProviderConfig contains configuration for an exec provider
 	execProviderConfig?: null | #ExecProviderConfig @go(ExecProviderConfig,*ExecProviderConfig) @protobuf(6,bytes,opt)
-
-	// DisableCompression bypasses automatic GZip compression requests to the server.
-	disableCompression?: bool @go(DisableCompression) @protobuf(7,bytes,opt)
-
-	// ProxyURL is the URL to the proxy to be used for all requests send to the server
-	proxyUrl?: string @go(ProxyUrl) @protobuf(8,bytes,opt)
 }
 
 // TLSClientConfig contains settings to enable transport layer security
@@ -1325,14 +1265,26 @@ _#rawResourceOverride: {
 	// Roles are user defined RBAC roles associated with this project
 	roles?: [...#ProjectRole] @go(Roles,[]ProjectRole) @protobuf(4,bytes,rep)
 
+	// ClusterResourceWhitelist contains list of whitelisted cluster level resources
+	clusterResourceWhitelist?: [...metav1.#GroupKind] @go(ClusterResourceWhitelist,[]metav1.GroupKind) @protobuf(5,bytes,opt)
+
+	// NamespaceResourceBlacklist contains list of blacklisted namespace level resources
+	namespaceResourceBlacklist?: [...metav1.#GroupKind] @go(NamespaceResourceBlacklist,[]metav1.GroupKind) @protobuf(6,bytes,opt)
+
 	// OrphanedResources specifies if controller should monitor orphaned resources of apps in this project
 	orphanedResources?: null | #OrphanedResourcesMonitorSettings @go(OrphanedResources,*OrphanedResourcesMonitorSettings) @protobuf(7,bytes,opt)
 
 	// SyncWindows controls when syncs can be run for apps in this project
 	syncWindows?: #SyncWindows @go(SyncWindows) @protobuf(8,bytes,opt)
 
+	// NamespaceResourceWhitelist contains list of whitelisted namespace level resources
+	namespaceResourceWhitelist?: [...metav1.#GroupKind] @go(NamespaceResourceWhitelist,[]metav1.GroupKind) @protobuf(9,bytes,opt)
+
 	// SignatureKeys contains a list of PGP key IDs that commits in Git must be signed with in order to be allowed for sync
 	signatureKeys?: [...#SignatureKey] @go(SignatureKeys,[]SignatureKey) @protobuf(10,bytes,opt)
+
+	// ClusterResourceBlacklist contains list of blacklisted cluster level resources
+	clusterResourceBlacklist?: [...metav1.#GroupKind] @go(ClusterResourceBlacklist,[]metav1.GroupKind) @protobuf(11,bytes,opt)
 
 	// SourceNamespaces defines the namespaces application resources are allowed to be created in
 	sourceNamespaces?: [...string] @go(SourceNamespaces,[]string) @protobuf(12,bytes,opt)

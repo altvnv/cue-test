@@ -8,16 +8,8 @@ import (
 )
 
 objectSets: [
-	kube,
-	argocd,
-	cilium,
-	externalSecrets,
-	vaultSecrets,
-	vmOperator,
-	otelOperator,
-	grafanaOperator,
-	gateway,
-	envoyproxy,
+	// kube,
+	argocd
 ]
 
 objects: [for sets in objectSets for set in sets for object in set {object}]

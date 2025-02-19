@@ -20,5 +20,3 @@ _#defaultFramer: {}
 #WithoutVersionDecoder: {
 	Decoder: #Decoder
 }
-
-_#nondeterministicEncoderToEncoderAdapter: NondeterministicEncoder: #NondeterministicEncoder
