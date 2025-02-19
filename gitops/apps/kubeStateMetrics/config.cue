@@ -2,7 +2,7 @@ package kubeStateMetrics
 
 defaultConfig: {
 	prometheus: monitor: {
-		enabled:     *true | bool
+		enabled:     *false | bool
 		honorLabels: true
 	}
 }
