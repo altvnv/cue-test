@@ -3,25 +3,12 @@ package gitops
 import (
 	"strings"
 
-	argo_v1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-
 	// Kubernetes
 	core_v1 "k8s.io/api/core/v1"
 	apps_v1 "k8s.io/api/apps/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
 	networking_v1 "k8s.io/api/networking/v1"
 )
-
-argocd: [TYPE=_]: [ID=_]: {
-	apiVersion: "argoproj.io/v1alpha1"
-	kind:       strings.ToTitle(TYPE)
-	metadata: name: *ID | string
-}
-
-argocd: close({
-	application: [string]: argo_v1alpha1.#Application
-	appProject: [string]:  argo_v1alpha1.#AppProject
-})
 
 kube: [TYPE=_]: [ID=_]: {
 	apiVersion: *"v1" | string

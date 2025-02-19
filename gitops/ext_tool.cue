@@ -9,7 +9,7 @@ import (
 
 objectSets: [
 	kube,
-	argocd
+	argocd,
 ]
 
 objects: [for sets in objectSets for set in sets for object in set {object}]

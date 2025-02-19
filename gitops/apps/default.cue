@@ -49,7 +49,7 @@ import (
 let triggers = [
 	"on-created",
 	"on-deleted",
-	//"on-deployed",
+	"on-deployed",
 	"on-health-degraded",
 	"on-sync-failed",
 	"on-sync-running",
