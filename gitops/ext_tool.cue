@@ -8,7 +8,7 @@ import (
 )
 
 objectSets: [
-	// kube,
+	kube,
 	argocd
 ]
 
