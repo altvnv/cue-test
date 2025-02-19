@@ -8,6 +8,6 @@ import (
 
 argocd: appProject: "\(_cluster)": {}
 argocd: application: {
-	"\(_cluster)-metrics-server": metricsServer.#App
-	"\(_cluster)-kube-state-metrics": kubeStateMetrics.#App
+	"\(_cluster)/metrics-server": metricsServer.#App
+	"\(_cluster)/kube-state-metrics": kubeStateMetrics.#App
 }
