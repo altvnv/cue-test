@@ -9,8 +9,6 @@ import (
 argocd: application: {
 	"\(_cluster)-manifests": manifests.#Manifests
 	"\(_cluster)-metrics-server": metricsServer.#App
-	"\(_cluster)-kube-state-metrics": kubeStateMetrics.#App
+	// "\(_cluster)-kube-state-metrics": kubeStateMetrics.#App
 	// "\(_cluster)-manifests": spec: source: path: "gitops/clusters/\(_cluster)"
-
-
 }
